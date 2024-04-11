@@ -1,0 +1,411 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<diagram program="umlet" version="15.1">
+  <zoom_level>9</zoom_level>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>792</x>
+      <y>603</y>
+      <w>252</w>
+      <h>216</h>
+    </coordinates>
+    <panel_attributes>Estudiante
+--
++grado: String
++curso: String
++creditos_completados: float
++asignaturas_aprobadas: [ ]
++asignaturas_cursando: [ ]
+--
+añadir_asignatura_aprobada(Asignatura)
+añadir_asignatura_a_cursar(Asignatura)
+eliminar_asignatura_cursando(Asignatura)
+
+
+
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1593</x>
+      <y>27</y>
+      <w>279</w>
+      <h>90</h>
+    </coordinates>
+    <panel_attributes>ProfesorAsociado
+--
++asignaturas_a_impartir: dict()
+--
+añadir_asignatura_a_impartir(Asignatura)
+eliminar_asignatura_a_impartir(Asignatura)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1629</x>
+      <y>216</y>
+      <w>252</w>
+      <h>108</h>
+    </coordinates>
+    <panel_attributes>ProfesorTitular
+--
++area_investigacion: String
++asignaturas_a_impartir: dict()
+--
+añadir_asignatura_a_impartir(Asignatura)
+eliminar_asignatura_a_impartir(Asignatura)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1395</x>
+      <y>621</y>
+      <w>252</w>
+      <h>108</h>
+    </coordinates>
+    <panel_attributes>Persona
+--
++nombre: String
++dni:String
++dirección: String
++sexo: String
+--</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2439</x>
+      <y>216</y>
+      <w>180</w>
+      <h>72</h>
+    </coordinates>
+    <panel_attributes>Investigador
+--
++area_investigacion: String
+
+--
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>756</x>
+      <y>225</y>
+      <w>270</w>
+      <h>198</h>
+    </coordinates>
+    <panel_attributes>Asignatura
+--
++id: string
++nombre: String
++grado: String
++créditos: float
++tipo: PeriodoAsignatura
++alumnos_matriculados = [ ]
++profesores = [ ]
+--
+añadir_estudiante_matriculado(Estudiante)
+eliminar_estudiante_matriculado(Estudiante)
+asignar_profesor(Profesor)
+eliminar_profesor_impartiendo(Profesor)</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2160</x>
+      <y>540</y>
+      <w>261</w>
+      <h>180</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1= 1
+m2= 0..n</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;90.0;240.0;90.0;240.0;180.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>1962</x>
+      <y>432</y>
+      <w>270</w>
+      <h>117</h>
+    </coordinates>
+    <panel_attributes>MiembroDepartamento
+--
++departamento: TipoDepartamento
+
+--
+cambio_dep(nuevo_dep:TipoDepartamento)
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>2295</x>
+      <y>702</y>
+      <w>162</w>
+      <h>99</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;enum&gt;&gt;
+TipoDepartamento
+--
+DIIC
+DITEC
+DIS</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>810</x>
+      <y>0</y>
+      <w>162</w>
+      <h>99</h>
+    </coordinates>
+    <panel_attributes>&lt;&lt;enum&gt;&gt;
+PeriodoAsignatura
+--
+ANUAL
+1º CUATRIMESTRE
+2º CUATRIMESTRE</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1035</x>
+      <y>666</y>
+      <w>378</w>
+      <h>27</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>400.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1638</x>
+      <y>486</y>
+      <w>342</w>
+      <h>234</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;240.0;170.0;240.0;160.0;10.0;360.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>2223</x>
+      <y>279</y>
+      <w>324</w>
+      <h>234</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;240.0;340.0;240.0;340.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1863</x>
+      <y>63</y>
+      <w>315</w>
+      <h>387</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>330.0;410.0;330.0;10.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1728</x>
+      <y>315</y>
+      <w>351</w>
+      <h>135</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;-</panel_attributes>
+    <additional_attributes>370.0;130.0;370.0;80.0;10.0;80.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>882</x>
+      <y>90</y>
+      <w>54</w>
+      <h>153</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1= 1
+m2= 0..n</panel_attributes>
+    <additional_attributes>10.0;150.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1017</x>
+      <y>45</y>
+      <w>594</w>
+      <h>216</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1= 1..n
+m2= 0..m</panel_attributes>
+    <additional_attributes>640.0;10.0;480.0;10.0;480.0;210.0;10.0;210.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>828</x>
+      <y>414</y>
+      <w>54</w>
+      <h>207</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1= 1..12
+m2= 0..n</panel_attributes>
+    <additional_attributes>10.0;210.0;10.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>324</x>
+      <y>333</y>
+      <w>450</w>
+      <h>540</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;580.0;10.0;10.0;480.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>UMLClass</id>
+    <coordinates>
+      <x>0</x>
+      <y>855</y>
+      <w>522</w>
+      <h>558</h>
+    </coordinates>
+    <panel_attributes>Universidad(Gestor)
+--
++nombre: String
++Ciudad: String
++CodPostal: Int
++estudiantes: list(Persona)
++profesores: list(ProfesorTitular | ProfesorAsociado)
++investigadores: list(Investigador)
++miembros_dep: {TipoDepartamento: list(ProfesorTitular | ProfesorAsociado | Investigador)}
++asignaturas: list(Asignatura)
+--
+-buscar_estudiante(dni)
+-buscar_profesor(dni)
+-buscar_investigador(dni)
+-añadir_miembro_dep(dni)
+-eliminar_miembro_dep(dni)
+
+
++insertar_estudiante(nombre, dni, direccion, sexo, grado, curso)
++insertar_prof_asociado(nombre, dni, direccion, sexo, departamento)
++insertar_prof_titular(nombre, dni, direccion, sexo, departamento, area_investigacion)
++insertar_investigador(nombre, dni, direccion, sexo, departamento, area_investigacion)
++insertar_asignatura(id, nombre, grado, creditos, tipo)
++eliminar_estudiante(dni)
++eliminar_profesor(dni)
++eliminar_investigador(dni)
++matricular_estudiante_en_asig(dni, id_asig)
++estudiante_aprueba_asig(dni, id_asig, calificacion)
++visualizar_boletin_calificaciones(dni)
++visualizar_creditos_completados(dni)
++cambio_departamento(dni, nuevo_departamento)
++asignar_profesor_a_asig(dni, id_asig)
++eliminar_profesor_de_asig(dni, id_asig)
++visualizar_asignaturasygrados_profesor(dni)
++est_matriculados_y_prof_de_asignatura(id_asig)
++imprimir_dep_y_sus_miembros()
++departamento_del_miembro(dni)
+
+
+
+</panel_attributes>
+    <additional_attributes/>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>513</x>
+      <y>810</y>
+      <w>414</w>
+      <h>117</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;110.0;440.0;110.0;440.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>936</x>
+      <y>414</y>
+      <w>54</w>
+      <h>207</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1= 0..n
+m2= 1..12</panel_attributes>
+    <additional_attributes>10.0;10.0;10.0;210.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1017</x>
+      <y>90</y>
+      <w>594</w>
+      <h>225</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1= 0..m
+m2= 1..n</panel_attributes>
+    <additional_attributes>10.0;220.0;570.0;220.0;570.0;10.0;640.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1017</x>
+      <y>306</y>
+      <w>630</w>
+      <h>81</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1= 1..n
+m2= 0..m</panel_attributes>
+    <additional_attributes>680.0;10.0;490.0;10.0;490.0;60.0;10.0;60.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>1017</x>
+      <y>315</y>
+      <w>693</w>
+      <h>126</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;-
+m1= 0..m
+m2= 1..n</panel_attributes>
+    <additional_attributes>10.0;110.0;720.0;110.0;720.0;10.0</additional_attributes>
+  </element>
+  <element>
+    <id>Relation</id>
+    <coordinates>
+      <x>513</x>
+      <y>540</y>
+      <w>1584</w>
+      <h>648</h>
+    </coordinates>
+    <panel_attributes>lt=&lt;&lt;&lt;&lt;&lt;-</panel_attributes>
+    <additional_attributes>10.0;690.0;1740.0;700.0;1730.0;10.0</additional_attributes>
+  </element>
+</diagram>
