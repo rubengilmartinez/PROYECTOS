@@ -1,0 +1,529 @@
+---
+title: "Proyecto Final AEM"
+author: "Rubén Gil Martínez"
+date: "2024-04-09"
+output: html_document
+---
+```{r}
+d <- read.csv("data/Mercado_valores_USA.csv")
+```
+
+
+
+ PRIMERAMENTE REALIZAREMOS UN PREPROCESADO DEL CONJUNTO DE DATOS PARA QUEDARNOS SOLAMENTE CON VARIABLES NUMÉRICAS QUE NOS PERMITAN CONSTRUIR EL MODELO DE REGRESIÓN LINEAL MÚLTIPLE ÓPTIMO PARA PREDECIR EL VALOR DE BITCOIN, COMO HEMOS COMENTADO, LA VARIABLE Bitcoin_Price SERÁ LA VARIABLE RESPUESTA.
+
+PRIMERAMENTE REALIZAMOS UN PREPROCESADO:
+
+ELIMINAMOS DEL CONJUNTO DE DATOS TODAS LAS VARIABLES QUE NO NOS INTERESAN QUE SON: LOS VOLÚMENES DE MERCADO DE LOS DISTINTOS ACTIVOS, TAMBIÉN VAMOS PRESCINDIR DE LAS COLUMNAS QUE NOS INDICAN EL ÍNDICE Y LAS DISTINTAS FECHAS
+```{r, warning=FALSE}
+library(dplyr)
+d <- d %>%
+  select(ends_with("_Price"))
+```
+ 
+UNA VEZ TENEMOS LOS DISTINTOS PRECIOS DE LOS 19 ACTIVOS QUE VAMOS A EMPLEAR PARA CONSTRUIR EL MODELO, VAMOS A REALIZAR UN ESTUDIO ESTADÍSTICO PREVIO:
+```{r}
+# ESTRUCTURA DE LOS DATOS:
+str(d)
+```
+
+```{r}
+# RESUMEN ESTADÍSTICO DE LOS DATOS
+summary(d)
+
+# PODEMOS OBSERVAR QUE VAMOS A TENER QUE NORMALIZAR LOS DATOS PARA QUE VARIABLES COMO EL PRECIO DE BERKSHIRE NO INFLUYAN DE MÁS EN MODELO DEBIDO A SU ESCALA, QUE ES DESPROPORCIONADAMENTE MAYOR A LA DE LA MAYORÍA DE VARIABLES.
+
+```
+
+```{r}
+# MEDIA Y D.TÍPICA DE LA VARIABLE RESPUESTA, GUARDAMOS ESTOS VALORES PARA DESPUÉS PODER HACER PREDICCIONES CON LOS VALORES REALES DEL ACTIVO YA QUE LO TIPIFICAMOS A LA HORA DE CONSTRUIR Y ENTRENAR EL MODELO :
+media_bitcoin <- mean(d$Bitcoin_Price)
+dtipica_bitcoin <- sd(d$Bitcoin_Price)
+media_bitcoin
+dtipica_bitcoin
+```
+
+VEAMOS SI PODRÍAMOS APLICAR ANÁLISIS DE COMPONENTES PRINCIPALES:
+
+VAMOS A ANALIZAR EL GRÁFICO DE NUBE DE PUNTOS Y LA MATRIZ DE CORRELACIONES PARA OBSERVAR SI HAY VARIABLES CORRELADAS.
+```{r}
+# AL HABER TANTA CANTIDAD DE VARIABLES ES DIFÍCIL REALIZAR LA NUBE DE PUNTOS PARA TODAS LAS VARIABLES, TOMAREMOS ALGUNAS VARIABLES Y LAS REPRESENTAREMOS PARA VISUALIZAR LA FORMA DE LAS NUBES:
+
+plot(d[,c(1:5)])
+plot(d[,c(3:7)])
+plot(d[,c(5:10)])
+plot(d[,c(8:13)])
+
+
+# PODEMOS OBSERVAR QUE TENEMOS BASTANTES VARIABLES CORRELADAS ENTRE SÍ.
+```
+
+
+```{r}
+correlaciones <- cor(d) # Matriz de correlaciones
+
+
+print("Porcentaje de pares de variables considerablemente correladas respecto del total sin contar los pares de misma variable: ")
+sum(correlaciones > 0.5 & correlaciones < 1) / sum(correlaciones < 1) * 100
+
+# Casi el 70% de las variables presentan una correlación mayor de 0.5.
+
+```
+```{r}
+#library(Hmisc)
+#rcorr(as.matrix(d))
+
+ # CALCULA LA MATRIZ DE CORRELACIONES Y QUE TAN SIGNIFICATIVAS SON ESTAS PARA SABER SI ES DE UTILIDAD REALIZAR ACP. 
+# INCISO, SE QUE ES LA FORMA MÁS CORRECTA DE ANALIZAR SI TIENE SENTIDO REALIZAR ACP PERO LA LIBRERÍA Hmisc NO HAY MANERA DE QUE FUNCIONE EN NUESTROS PORTÁTILES PROPIOS.
+```
+
+POR ÚLTIMO, ANTES DE REALIZAR EL PCA, ANALICEMOS LA POSIBLE EXISTENCIA DE VALORES ATÍPICOS:
+
+La forma en la que se distribuye cada variable y la posible existencia de atípicos puede visualizarse a través de los diagramas de caja-bigotes:
+
+```{r}
+boxplot(d, cex.axis=0.4)
+# Podemos apreciar como el precio de la acción de Berkshire tiene mucha variabilidad en comparación a las demás variables y tiene una escala completamente diferente, habrá que normalizar las variables o de manera equivalente, trabajar con la matriz de correlaciones, también observamos la existencia de algunos valores atípicos en algunas variables.
+
+```
+
+
+
+DISTANCIA DE MAHALANOBIS:
+```{r}
+# EL CÁLCULO DE LA DISTANCIA DE MAHALANOBIS PARA CADA FILA DE PRECIOS RESPECTO A LA MEDIA DE LA POBLACIÓN NOS PUEDE PROPORCIONAR INFORMACIÓN SOBRE LA EXISTENCIA DE DATOS ATÍPICOS, EN ESTE CASO, PODEMOS OBSERVAR UNA OBSERVACIÓN QUE SE ALEJA CONSIDERABLEMENTE DE LA MEDIA DE LA POBLACIÓN:
+
+md <- mahalanobis(d, colMeans(d), cov(d))
+plot(md, ylab = 'Distancias de Mahalanobis')
+
+# Podemos observar varios valores atípicos pero hay uno que su distancia es muy grande respecto a la media y varianza de la población, de momento no lo trataremos pero lo tendremos en cuenta por si nos causa efectos negativos a la hora de construir el modelo.
+
+```
+
+```{r}
+# DURANTE LA CONSTRUCCIÓN DEL MODELO OBSERVAMOS QUE ESTE DATO TAN ATÍPICO PUEDE TOMAR MUCHO PESO A LA HORA DE CALCULAR LOS COEFICIENTES ÓPTIMOS Y HACER QUE LA RECTA DE REGRESIÓN VARÍE INCORRECTAMENTE SU AJUSTE RESPECTO A LA MAYORÍA DE LOS DEMÁS DATOS.
+
+# POR TANTO, OPTAMOS A ELIMINAR ESTA OBSERVACIÓN:
+which.max(md)
+d <- d[-939,]
+
+md <- mahalanobis(d, colMeans(d), cov(d))
+plot(md, ylab = 'Distancias de Mahalanobis')
+```
+
+
+# ANÁLISIS DE COMPONENTES PRINCIPALES:
+```{r}
+# SACAMOS LA VARIABLE TARGET DEL CONJUNTO DE DATOS PARA NO PASARLA POR EL ACP:
+precio_bitcoin <- d$Bitcoin_Price
+d$Bitcoin_Price <- NULL
+```
+
+
+```{r}
+ PCA <- princomp(d, cor = TRUE)
+ summary(PCA, loadings = TRUE)
+ 
+ #Porcentaje de variabilidad que explica cada componente: Proportion of Variance
+ #comp1 explica 65.11% de la variabilidad, comp2 un 15.14%, comp3 un 7.32%......
+```
+
+```{r}
+# El valor propio de una CP indica la cantidad de varianza de las variables originales que es explicada por dicha componente:
+
+ print("Valores propios asociados a cada componente principal:")
+(PCA$sdev) ^ 2
+
+# PODEMOS OBSERVAR COMO CADA COMPONENTE TIENE UN VALOR PROPIO MENOR QUE EL ANTERIOR, ESTO OCURRE PORQUE SE VA REDUCIENDO LA CANTIDAD DE VARIANZA QUE DEBE DE SER EXPLICADA PORQUE ESTA, YA ESTA SIENDO EXPLICADA POR LAS PRIMERAS COMPONENTES.
+```
+
+```{r}
+# AQUÍ OBTENEMOS LA MATRIZ CON CADA UNO DE LOS VECTORES PROPIOS EN LAS COLUMNAS, CADA COLUMNA ES UN VECTOR PROPIO 
+S <- PCA$scores
+```
+INTERPRETEMOS QUE INFORMACIÓN NOS PROPORCIONA EL PCA:
+
+
+```{r}
+# PODEMOS OBSERVAR LA GRÁFICA DE SCORES DE LA PRIMERA COMPONENTE:
+
+plot(S[, 1] ,ylab = 'Primera componente Y1')
+
+# MUESTRAS CON SCORE MÁXIMO Y MÍNIMO EN LA COMPONENTE PRINCIPAL 1:
+which.max(S[, 1])
+which.min(S[, 1])
+
+```
+OBSERVEMOS LAS SATURACIONES Y COMUNALIDADES PARA ASEGURAR QUE TODAS NUESTRAS VARIABLES ORIGINALES ESTÁN MEDIANAMENTE BIEN EXPLICADAS POR LAS COMPONENTES PRINCIPALES:
+
+```{r}
+# MATRIZ DE SATURACIONES: ES LA MATRIZ CON LAS CORRELACIONES DE CADA V.ORIGINAL CON CADA C.PRINCIPAL.
+
+# LAS SATURACIONES AL CUADRADO MUESTRAN EL PORCENTAJE DE V.ORIGINAL QUE EXPLICA LA C.PRINCIPAL EN CONCRETO
+
+SAT <- cor(d, S) # MATRIZ DE SATURACIONES
+```
+
+
+
+```{r}
+# COMUNALIDADES:
+
+ # Comunalidades si retenemos 2 componentes:
+
+COM2 <- SAT[, 1] ^ 2 + SAT[, 2] ^ 2 
+COM2
+
+# LAS COMUNALIDADES NOS REFLEJAN LA CANTIDAD DE INFORMACIÓN EXPLICADA DE LAS V.ORIGINALES POR VARIAS C.PRINCIPALES EN SU CONJUNTO.
+
+
+which.max(COM2) # LA VARIABLE MEJOR EXPLICADA POR LAS 2 PRIMERAS C.P ES Nasdaq_100_Price, se explica un 98.32% de su información.
+which.min(COM2) # LA VARIABLE PEOR EXPLICADA POR LAS 2 PRIMERAS C.P ES Platinum_Price, se explica un 35.49% de su información
+
+```
+
+```{r}
+
+# Comunalidades si retenemos 3 componentes:
+COM3 <- SAT[, 1] ^ 2 + SAT[, 2] ^ 2 + SAT[, 3] ^ 2  # comunalidades si retenemos 3 componentes
+COM3
+
+# LAS COMUNALIDADES NOS REFLEJAN LA CANTIDAD DE INFORMACIÓN EXPLICADA DE LAS V.ORIGINALES POR VARIAS C.PRINCIPALES EN SU CONJUNTO.
+
+
+
+which.max(COM3) # LA VARIABLE MEJOR EXPLICADA POR LAS 3 PRIMERAS C.P ES Nasdaq_100_Price, se explica un 99.11% de su información.
+which.min(COM3) # LA VARIABLE PEOR EXPLICADA POR LAS 3 PRIMERAS C.P ES Platinum_Price, se explica un 68.05% de su información
+
+```
+REGLAS DE SELECCIÓN DE LAS P SUCIENTES COMPONENTES PRINCIPALES, UNA VEZ OBTENGAMOS ESTAS VARIABLES, LAS UTILIZAREMOS PARA CONTRUIR UN MODELO DE REGRESIÓN PARA PREDECIR EL VALOR DE BITCOIN:
+
+```{r}
+# REGLA DE KAISER: establece que solo serán relevantes las componentes que tengan una variabilidad mayor que la variabilidad media de las variables originales. Al usar la matriz de correlaciones para calcular las componentes, como las varianzas de las variables originales son 1, el valor medio de las varianzas es 1, por tanto, este criterio coincide con el de Rao.
+
+eigen(cor(d))$values    # Valores propios de la matriz de correlaciones
+
+#OBSERVANDO LOS VALORES PROPIOS Y SIGUIENDO EL CRITERIO DE RELEVANCIA DE LAS REGLAS Rao Y Kaiser, EN ESTE CASO, NOS QUEDAMOS CON P=3.
+
+```
+
+```{r}
+# GRÁFICO DE SEDIMENTACIÓN:
+ screeplot(PCA)
+
+# Tener en cuenta que: Var(Comp1) = v.propio(comp1)
+
+# PODEMOS OBSERVAR COMO DISMINUYE LA CANTIDAD DE VARIABILIDAD QUE CAPTURA CADA COMPONENTE
+
+```
+
+```{r}
+plot(eigen(cor(d))$values, type = 'l', ylab = 'Valores propios')
+
+```
+SE PUEDE APRECIAR CLARAMENTE EL CODO EN j=4, POR TANTO, OBSERVANDO ESTA GRÁFICA PODEMOS DECIR QUE NOS QUEDAMOS CON LAS PRIMERAS 3 COMPONENTES PRINCIPALES.
+
+UNA VEZ SELECCIONADAS LAS COMPONENTES PRINCIPALES VAMOS A CONSTRUIR UN MODELO, LO VAMOS A ENTRENAR Y EVALUAR CONSIDERANDO DIFERENTES HIPERPARÁMETROS E INICIALIZACIONES Y NOS QUEDAREMOS CON EL QUE PROPORCIONE UNA PREDICCIÓN MÁS ROBUSTA, ESTABLE Y PRECISA, COMO HEMOS HECHO EL ACP NOS HEMOS ASEGURADO YA EL EVITAR LA MULTICOLINEALIDAD ENTRE LAS VARIABLES, ESTO PROVOCA QUE PARA PEQUEÑAS VARIACIONES EN LOS DATOS DE ENTRADA SE PRODUZCAN GRANDES VARIACIONES EN LA SALIDA Y NO QUEREMOS UN MODELO TAN INESTABLE.
+
+
+
+
+# REGRESIÓN LINEAL MÚLTIPLE CON GRADIENTE DESCENDIENTE:
+
+```{r}
+# NUESTROS REGRESORES A UTILIZAR PARA CONSTRUIR EL MODELO:
+
+X1 <- S[, 1]
+X2 <- S[, 2]
+X3 <- S[, 3]
+```
+
+ANÁLISIS DESCRIPTIVO PREVIO DE LA VARIABLE RESPUESTA Y LOS REGRESORES ANTES DE CREAR EL MODELO:
+
+```{r}
+#Diagramas de caja de bigotes:
+datos_regresion <- data.frame(X1, X2, X3, precio_bitcoin)
+boxplot(datos_regresion, xlab = "REGRESORES Y VARIABLE RESPUESTA")
+boxplot(datos_regresion[, c(1,2,3)], xlab = "REGRESORES")
+#Podemos realizar cada boxplot por separado para visualizarlo mejor. 
+#Para la variable RESPUESTA tenemos:
+boxplot(precio_bitcoin, xlab='Precio Bitcoin')
+
+# PARECE QUE NO SE OBSERVA NINGÚN VALOR ATÍPICO EN LA VARIABLE RESPUESTA, SI PODEMOS OBSERVAR LA DIFERENCIA DE ESCALA ENTRE LOS REGRESORES Y LA VARIABLE RESPUESTA Y ADEMÁS QUE ALGUNOS REGRESORES SI CONTIENEN DATOS ATÍPICOS
+```
+```{r}
+# NUBE DE PUNTOS ENTRE LOS REGRESORES Y LA VARIABLE RESPUESTA:
+plot(datos_regresion)
+```
+
+
+```{r}
+#Pruebas de normalidad de la variable RESPUESTA:
+shapiro.test(precio_bitcoin)
+qqnorm(precio_bitcoin)
+qqline(precio_bitcoin)
+# SE VE COMPROMETIDA LA NORMALIDAD DE LA VARIABLE RESPUESTA VEAMOS SI PODEMOS REALIZAR ALGUNA TRANSFORMACIÓN:
+
+# EN EL GRÁFICO DE CUANTILES PODEMOS OBSERVAR CURVATURAS A LA IZQUIERDA Y A LA DERECHA, ESTO NOS INDICA LA NO NORMALIDAD DE LA VARIABLE.
+
+
+```
+PROBEMOS CON UNA TRANSFORMACIÓN DE LA FAMILIA BOX-COX:
+```{r}
+library(MASS)
+boxcox(lm(precio_bitcoin ~ 1, data = datos_regresion), lambda = seq(-3, 3, 1/10))
+boxcox(lm(precio_bitcoin ~ 1, data = datos_regresion), lambda = seq(-3, 3, 1/10), plotit = FALSE)
+```
+```{r}
+# PODEMOS OBSERVAR QUE PUEDE SER UNA TRANFORMACIÓN ADECUADA EL ELEVAR A 0.3 LA VARIABLE RESPUESTA YA QUE ES EL PUNTO DE MÁXIMA VEROSIMILITUD
+bitcoin_trans <- datos_regresion$precio_bitcoin ^ 0.3
+shapiro.test(bitcoin_trans)
+
+
+# NO HE CONSEGUIDO CON LA TRANSFORMACIÓN DE LOS DATOS QUE LA VARIABLE RESPUESTA SIGA UNA DISTRIBUCIÓN NORMAL, POR TANTO, NUESTRO MODELO PUEDE SER QUE DE ALGUNOS VALORES SESGADOS Y OTROS ALGO INEXACTOS PERO VEAMOS COMO AVANZA LA CONSTRUCCIÓN DEL MODELO
+```
+
+
+```{r}
+boxplot(precio_bitcoin, xlab='Precio Bitcoin')
+
+```
+```{r}
+# COMO HEMOS OBSERVADO ANTERIORMENTE EN LAS GRÁFICAS DE CAJA DE BIGOTES Y RECORDANDO QUE A LA HORA DE OBTENER LAS COMPONENTES PRINCIPALES, HEMOS USADO LA MATRIZ DE CORRELACIONES, NUESTROS DATOS SE ENCUENTRAN TIPIFICADOS, POR TANTO, DEBEMOS TIPIFICAR TAMBIÉN LA VARIABLE RESPUESTA PARA QUE SE ENCUENTRE EN LA MISMA ESCALA Y ASÍ NO TENER PROBLEMAS CON LAS MAGNITUDES:
+datos_regresion$precio_bitcoin <- ((precio_bitcoin - mean(precio_bitcoin)) / sd(precio_bitcoin))
+precio_bitcoin <- ((precio_bitcoin - mean(precio_bitcoin)) / sd(precio_bitcoin))
+```
+
+
+VAMOS A CONSTRUIR EL MODELO EMPLEANDO EL ALGORITMO DE ENTRENAMIENTO DE DESCENSO DE GRADIENTE, UTILIZAREMOS UN BUCLE CON EL QUE IREMOS ACTUALIZANDO LOS COEFICIENTES(TETHAS) CON EL FIN DE IR REDUCIENDO EL VALOR DE LA FUNCIÓN DE COSTO, UTILIZAREMOS UN 80% DE LOS DATOS PARA ENTRENAR AL MODELO Y CON EL 20% RESTANTE EVALUAREMOS AL MODELO CON DATOS NUEVOS Y VEREMOS CUÁL ES SU CAPACIDAD PREDICTIVA Y DE GENERALIZACIÓN:
+
+
+```{r}
+# DIVIDIMOS DATASET EN CONJUNTO DE ENTRENAMIENTO Y CONJUNTO DE TEST:
+
+set.seed(123)
+
+indices_entrenamiento <- sample(1:nrow(datos_regresion), 0.8 * nrow(datos_regresion))
+
+datos_entrenamiento <- datos_regresion[indices_entrenamiento, ]
+datos_prueba <- datos_regresion[-indices_entrenamiento, ]
+
+colnames(datos_entrenamiento)
+```
+
+```{r}
+X0 <- rep(1, length(datos_entrenamiento$X1))
+n <- length(datos_entrenamiento$X1)
+
+
+#Número regresores:
+k <- 3
+
+#Metemos los datos muestrales en una matriz de diseño M:
+M <- matrix(1, nrow = n, ncol = k + 1)
+M[,2] <- datos_entrenamiento$X1
+M[,3] <- datos_entrenamiento$X2
+M[,4] <- datos_entrenamiento$X3
+
+
+#Definimos función costo usando la matriz de diseño M:
+h_RLM <- function(theta, x) {
+  sum(theta*x)
+  }
+
+J_RLM <- function(theta, M) {
+  0.5*sum((M %*% theta - datos_entrenamiento$precio_bitcoin)^2)/n
+}
+
+#Fijamos número de iteraciones, learning rate y valores iniciales:
+
+m_RLM <- 25 # ITERACIONES
+alfa_RLM <- 0.1 # TASA DE APRENDIZAJE
+theta_RLM <- c(1, 1, 1, 1) # INICIALIZACIÓN DE LOS COEFICIENTES
+# DESPUÉS DE REALIZAR DISTINTAS INICIALIZACIONES ME QUEDO CON ESTA QUE NOS PROPORCIONA EL MEJOR ENTRENAMIENTO 
+
+
+J2_RLM <- array() #Vector con actualizaciones de la función costo en cada iteración
+hv_RLM <- array() #Vector con actualizaciones de los valores ajustados en cada iteración
+Z2_RLM <- matrix(NA, nrow = m_RLM + 1, ncol = k + 1) 
+
+#Matriz con actualizaciones de los theta en cada iteración
+J2_RLM[1] <- J_RLM(theta_RLM, M)
+Z2_RLM[1,] <-theta_RLM
+
+
+
+```
+
+ALGORITMO DONDE VAMOS ACTUALIZANDO LOS COEFICIENTES DE MANERA QUE SE VA REDUCIENDO LA FUNCIÓN DE COSTO, ENTRENAMIENTO DEL MODELO:
+```{r}
+for (i in 1:m_RLM) {
+hv_RLM <- M %*% theta_RLM
+theta_RLM <- theta_RLM - (alfa_RLM/n) * t(M) %*% (hv_RLM - datos_entrenamiento$precio_bitcoin)
+
+# EN CADA ITERACIÓN INCLUIMOS EN EL ARRAY J2_RLM Y EN LA MATRIZ Z2_RLMEL VALOR DE LA FUNCIÓN DE COSTO Y ACTUALIZAMOS CON EL VALOR DE LOS NUEVOS COEFICIENTES RESPECTIVAMENTE:
+J2_RLM[i + 1] <-J_RLM(theta_RLM, M)
+Z2_RLM[i + 1,] <- theta_RLM
+}
+#Guardamos los valores de los thetas y de la función de costo en  cada iteración en un dataframe:
+resultados <- data.frame(Z2_RLM, J2_RLM)
+colnames(resultados) <- c("theta0", "theta1", "theta2","theta3", "costo")
+
+# COEFICIENTES Y COSTO EN CADA ITERACIÓN:
+View(resultados)
+
+```
+
+
+COEFICIENTES ÓPTIMOS SEGÚN NUESTRO ENTRENAMIENTO MEDIANTE DESCENSO DE GRADIENTE:
+```{r}
+coef_optimos_GD <- Z2_RLM[m_RLM + 1, ]
+coef_optimos_GD
+```
+
+
+COMPAREMOS LOS RESULTADOS QUE NOS PROPORCIONA EL ALGORITMO DE ENTRENAMIENTO DE GD CON EL MÉTODO lm() QUE NOS PROPORCIONA R:
+
+```{r}
+modelo_prediccion <- lm(precio_bitcoin ~ X1 + X2 + X3, data = datos_entrenamiento)
+```
+
+
+COEFICIENTES ÓPTIMOS SEGÚN EL MÉTODO lm():
+```{r}
+modelo_prediccion$coefficients
+```
+
+Valor de costo óptimo según GD:
+```{r}
+
+2*J_RLM(Z2_RLM[m_RLM + 1,], M) 
+```
+
+VEAMOS LA GRÁFICA CON LA CONVERGENCIA DE LA FUNCIÓN DE COSTO:
+
+```{r}
+Jm <-1:m_RLM
+for (i in 1:m_RLM) {
+Jm[i] <- J_RLM(Z2_RLM[i, ], M)
+}
+min_RLM <-J_RLM(modelo_prediccion$coefficients, M)
+plot(Jm[1:m_RLM], col = 'red', xlab = 'Número de iteraciones', ylab = 'F.costo')
+abline(h = min_RLM)
+
+```
+Valor de costo óptimo según el método lm():
+```{r}
+MSE <- mean(modelo_prediccion$residuals^2)
+print("Valor de costo óptimo según lm():")
+MSE
+```
+
+# EVALUACIÓN DEL MODELO DE PREDICCIÓN: HAREMOS UN RESUMEN DEL MODELO CONSTRUIDO Y VAMOS A EMPLEAR EL CONJUNTO DE TEST PARA REALIZAR PREDICCIONES Y VER COMO PREDICE EL MODELO CON DATOS NUEVOS:
+
+```{r}
+summary(modelo_prediccion)
+
+```
+
+```{r}
+# OBSERVANDO EL COEFICIENTE DE DETERMINACIÓN R^2 DEL MODELO:
+ round(summary(modelo_prediccion)$r.squared, 4)
+# Los modelos de regresión obtenidos explican aproximadamente el 83.22% de la variabilidad del precio de Bitcoin:
+
+100*summary(modelo_prediccion)$r.squared #%
+
+
+```
+
+```{r}
+print('Intervalos de confianza al 95% para los coeficientes del modelo de predicción:')
+confint(modelo_prediccion, level=0.95)
+
+# Cualquier modelo teórico con coeficientes dentro de los intervalos obtenidos serían también válidos teniendo en cuenta nuestros datos muestrales.
+```
+
+# PREDICCIONES CON DATOS NUEVOS(CONJUNTO DE TEST):
+
+```{r}
+ # PREDICCIÓN VALOR PROMEDIO:
+P_promedio <- predict(modelo_prediccion, newdata = datos_prueba[,c(1,2,3)], interval = "confidence", level = 0.95) * dtipica_bitcoin + media_bitcoin
+```
+
+```{r}
+# PREDICCIÓN DEL VALOR EXACTO PARA ESAS CARACTERÍSTICAS EN CONCRETO:
+P_exacta <- predict(modelo_prediccion, newdata = datos_prueba[,c(1,2,3)], interval = "prediction", level = 0.95) * dtipica_bitcoin + media_bitcoin
+```
+
+ POR EJEMPLO:
+Aquí mostramos la predicción del valor promedio y del valor exacto de Bitcoin con una confianza del 95% PARA 4 valores distintos: .
+```{r}
+for (i in c(1, 34, 98, 137)) {
+  # Imprimir las filas correspondientes de datos_prueba, P_promedio y P_exacta
+  print(paste("Predicción", i))
+  print(paste("Datos de prueba:", datos_prueba[i,c(1, 2, 3)]))
+  print(paste("Predicción promedio:"))
+  print(P_promedio[i,])
+  print(paste("Predicción exacta:"))
+  print(P_exacta[i,])
+  print("--------------------")
+}
+```
+
+
+# POR ÚLTIMO, REALIZAREMOS UNA SERIE DE TEST PARA VER SI PODEMOS VALIDAR EL MODELO:
+
+```{r}
+# 1) Hipótesis de Normalidad:
+shapiro.test(modelo_prediccion$residuals)
+qqnorm(modelo_prediccion$residuals)
+qqline(modelo_prediccion$residuals)
+
+# PARECE QUE LOS RESIDUOS NO SIGUEN UNA NORMAL, PUEDE SER QUE NUESTRO MODELO ESTE ALGO SESGADO, POR TANTO, HAY QUE TENER EN CUENTA QUE LAS PREDICCIONES QUE HAGAMOS CON NUESTRO MODELO NO SERÁN TAN FIABLES Y ROBUSTAS QUE SI SI HUBIÉSEMOS CONSEGUIDO NORMALIDAD EN LOS RESIDUOS DEL MODELO.
+```
+
+
+
+```{r}
+# Aquí podemos observar los residuos de nuestro modelo(diferencia entre su predicción y el valor deseado para cada muestra)
+plot(modelo_prediccion$residuals)
+
+```
+```{r}
+# 2) Hipótesis de Homocedasticidad:
+plot(modelo_prediccion$fitted.values, modelo_prediccion$residuals)
+
+# Con el gráfico anterior observamos que los residuos dependen de los valores predichos de la variable respuesta, NO se mantiene la constancia de la varianza de los errores para los valores menores que 0, se puede apreciar como un patrón en forma de abanico. Esto significa que tendremos problemas de fiabilidad a la hora de realizar predicciones. Que se produzca esto solo para los valores negativos puede ser que sea porque el modelo ha adquirido algún tipo de sesgo a la hora de predecir valores bajos del precio de bitcoin.
+
+```
+
+
+
+
+```{r}
+# 3) Hipótesis de Independencia:
+ts.plot(modelo_prediccion$residuals)
+library("lmtest")
+dwtest(modelo_prediccion, alternative="two.sided")
+
+# Se presenta un comportamiento aleatorio con dispersión aproximadamente constante, y además obtenemos un p-valor alto (superior a 0.10) en el contraste de Durbin-Watson, este establece que los errores (o residuos) entre las observaciones son independientes entre sí.
+
+```
+```{r}
+# 4) Distancia de Cook para cada observación:
+cook <- cooks.distance(modelo_prediccion)
+plot(cook)
+# Si hubiese algún dato con distancia mayor que 1 sería un dato influyente, parece que no se observa ninguna.
+```
+
+
+# CONCLUSIÓN:
+
+HEMOS VISTO EN LOS TEST QUE NUESTRO MODELO CUMPLE LA HIPÓTESIS DE INDEPENDENCIA Y QUE NO TIENE OBSERVACIONES MUY INFLUYENTES(TRAS ELIMINAR AQUELLA OBSERVACIÓN CON DISTANCIA DE MAHALANOBIS MUY GRANDE), SIN EMBARGO, NUESTRO MODELO NO PASA LOS TEST QUE PERMITEN VALIDARLO AL COMPLETO, ES DECIR, LAS PREDICCIONES QUE PUEDE LLEGAR A HACER NUESTRO MODELO NO SON TAN FIABLES, SI PASARÁ TODOS LOS TEST E HIPÓTESIS PODRÍAMOS CONSTRUIR PREDICCIONES CON TOTAL FIABILIDAD.
+
+PRESENTA PROBLEMAS DE NORMALIDAD TANTO EN LA VARIABLE RESPUESTA(EN LA QUE HEMOS TRATADO DE TRANSFORMAR MEDIANTE LA FAMILA DE BOX-COX PARA CONSEGUIR LA NORMALIDAD PERO NO HEMOS OBTENIDO RESULTADO) COMO EN LOS RESIDUOS, ES DECIR, NO SIGUEN UNA DISTRIBUCIÓN NORMAL.
+
+PUEDE SER QUE HAYA UNA RELACIÓN NO LINEAL ENTRE LAS VARIABLES PREDICTORAS Y LA VARIABLE RESPUESTA QUE NO HE TENIDO EN CUENTA. TAMBIÉN PUEDE INDICAR LA PRESENCIA DE LA HETEROCEDASTICIDAD DE LOS RESIDUOS COMO DESPUÉS NOS HA CONFIRMADO EL TEST DE HOMOCEDASTICIDAD, LA VIOLACIÓN DE ESTE TEST CLAVE NOS LLEVA DIRECTAMENTE A NO PODER VALIDAR EL MODELO YA QUE, COMO COMENTABA ANTES, EL MODELO PUEDE PROPORCIONAR PREDICCIONES NO DEL TODO CORRECTAS.
+
+
+PARA CONCLUIR COMENTAR QUE CONSTRUIR UN MODELO CON DATOS REALES NO ES TAREA FÁCIL, A LO LARGO DEL DESARROLLO DEL PROYECTO ME HE DADO CUENTA QUE EL CONJUNTO DE DATOS ES ALGO COMPLEJO POR LO QUE PUEDE SER QUE TENGA MÁS SENTIDO UTILIZAR OTRAS TÉCNICAS MÁS ROBUSTAS DE MODELADO COMO LAS QUE SE EMPLEAN EN MACHINE LEARNING. SEGURAMENTE, EMPLEANDO UN PERCEPTRÓN MULTICAPA O UNA MÁQUINA DE VECTOR SOPORTE ENCONTRARÍAMOS MEJORAS SUSTANCIALES EN LOS RESULTADOS.
