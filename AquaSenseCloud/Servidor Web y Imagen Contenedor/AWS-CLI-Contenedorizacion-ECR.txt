@@ -1,0 +1,46 @@
+PASO 1)
+
+Crear el directorio web-server-development mediante "mkdir"
+Abrir y guardar en ficheros de texto por separado el contenido de: Dockerfile, requirements.txt y aquasense.py, mediante "nano".
+
+
+
+PASO 2)
+
+### DESARROLLO DE LA IMAGEN QUE SE USARÁ PARA LANZAR EL CONTENEDOR ###
+
+sudo systemctl start Docker
+
+
+sudo docker build -t aquasense-container . # CONSTRUIR LA IMAGEN
+
+
+
+sudo docker images # PARA COMPROBAR CORRECTA CREACIÓN IMAGEN
+
+
+"Este comando ejecuta el contenedor y la aplicación dentro él escuchando en el puerto 5000. El primer 5000 enlaza el contenedor al puerto 5000 del
+sistema y el segundo 5000 asigna el puerto 5000 del contenedor al puerto 5000 del sistema."
+
+sudo docker run -p 5000:5000 -d aquasense-container # EJECUTAR EL CONTENEDOR
+
+
+sudo docker ps # PARA COMPROBAR CORRECTA EJECUCIÓN DEL CONTENEDOR
+
+
+
+
+
+PASO 3)
+
+### SUBIDA DE LA IMAGEN DEL CONTENDOR DE NUESTRA APLICACIÓN A AWS ECR ###
+
+
+## Primer comando de esta ventana para la autenticación en Amazon ECR. 
+1) aws ecr get-login-password --region us-east-1 | sudo docker login --username AWS --password-stdin 471112833695.dkr.ecr.us-east-1.amazonaws.com
+
+## Realización de una copia local de la imagen del contenedor que contiene nuestra aplicación(servidor web):
+2) sudo docker tag aquasense-container 471112833695.dkr.ecr.us-east-1.amazonaws.com/proy-repo-aquasense
+
+## Envio de la copia de la imagen Docker a nuestro repositorio ECR en AWS:
+3) sudo docker push 471112833695.dkr.ecr.us-east-1.amazonaws.com/proy-repo-aquasense
